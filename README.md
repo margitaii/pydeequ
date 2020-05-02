@@ -80,7 +80,7 @@ The main entry point for the end-user is the *VerificationSuite*. We can add dat
 ...          .run()
 >>> out = DataFrame(r, spark)                                                   
 >>> out.show()
-```
+
 +--------+-----------+------------+--------------------+-----------------+--------------------+
 |   check|check_level|check_status|          constraint|constraint_status|  constraint_message|
 +--------+-----------+------------+--------------------+-----------------+--------------------+
