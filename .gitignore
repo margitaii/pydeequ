@@ -13,6 +13,9 @@ __pycache__/*
 .*.swp
 */.ipynb_checkpoints/*
 .DS_Store
+metastore_db/
+spark-warehouse/
+.vscode
 
 # Project files
 .ropeproject
