@@ -13,11 +13,6 @@ def iterable_to_scala_seq(jvm, iterable):
         iterableAsScalaIterable(iterable).\
         toSeq()
 
-def iterable_to_scala_array(jvm, iterable):
-    return jvm.scala.collection.JavaConversions.\
-        iterableAsScalaIterable(iterable).\
-        toSeq().toArray()
-
 def simple_date_format(jvm, s):
     return jvm.java.text.SimpleDateFormat(s)
 

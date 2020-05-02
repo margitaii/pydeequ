@@ -40,7 +40,7 @@ def main():
                    .hasSum('_2', lambda x: x > 50)
                    .hasStandardDeviation('_2', lambda x: x > 5)
                    .hasApproxCountDistinct('_2', lambda x: x == 5)
-                   .hasCorrelation('_2', '_2', lambda x: x == 1)
+                   .hasCorrelation('_2', '_5', lambda x: x == 1)
                    .satisfies("_2 > 15", "MyCondition", lambda x: x == 0.25)
                    #.hasPattern("_1", "thing([A-Z])", lambda x: x == 1)
                    #.hasDataType("_1", "string", lambda x: x == 1)
