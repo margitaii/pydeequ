@@ -24,6 +24,10 @@ def main():
 
     parsed = json.loads(r)
     print(json.dumps(parsed, indent = 4))
+    
+    # SparkSession and Java Gateway teardown
+    spark.sparkContext._gateway.close()
+    spark.stop()
 
 if __name__ == "__main__":
     main()

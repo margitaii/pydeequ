@@ -3,7 +3,8 @@
 import json
 from pyspark.sql import SparkSession, DataFrame
 
-from pydeequ.suggestions import ConstraintSuggestionRunner, Rules
+from pydeequ.base import ConstraintSuggestionRunner
+from pydeequ.suggestions import Rules
 from pydeequ.examples import test_data
 
 def main():
@@ -25,6 +26,11 @@ def main():
 
     parsed = json.loads(r)
     print(json.dumps(parsed, indent = 4))
+
+    # SparkSession and Java Gateway teardown
+    spark.sparkContext._gateway.close()
+    spark.stop()
+
 
 if __name__ == "__main__":
     main()

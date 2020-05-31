@@ -2,23 +2,12 @@ import py4j.java_gateway as jg
 
 from pydeequ.exceptions import JavaClassNotFoundException
 import pydeequ.jvm_conversions as jc
+import sys
 
-class VerificationRunBuilder:
-    """
-    A class to build a VerificationRun using a fluent API.
-    """
+class BaseBuilder(object):
     def __init__(self, SparkSession, dataFrame):
-        """
-        Args:
-            SparkSession (pyspark.sql.SparkSession)
-            dataFrame (pyspark.sql.dataframe.DataFrame)
-        """
         self.spark = SparkSession
         self._dataFrame = dataFrame
-        run_builder = self._jvm.com.amazon.deequ.VerificationRunBuilder
-        self.jvmVerificationRunBuilder = run_builder(
-            self.dataFrame._jdf
-        )
 
     @property
     def _jsparkSession(self):
@@ -31,6 +20,23 @@ class VerificationRunBuilder:
     @property
     def dataFrame(self):
         return self._dataFrame
+
+class VerificationRunBuilder(BaseBuilder):
+    """
+    A class to build a VerificationRun using a fluent API.
+    """
+    def __init__(self, SparkSession, dataFrame):
+        """
+        Args:
+            SparkSession (pyspark.sql.SparkSession)
+            dataFrame (pyspark.sql.dataframe.DataFrame)
+        """
+        super().__init__(SparkSession, dataFrame)
+        run_builder = self._jvm.com.amazon.deequ.VerificationRunBuilder
+        self.jvmVerificationRunBuilder = run_builder(
+            self.dataFrame._jdf
+        )
+
 
     def addCheck(self, check):
         """
@@ -49,14 +55,19 @@ class VerificationRunBuilder:
 
         jvmVerificationResult = self._jvm.com.amazon.deequ \
             .VerificationResult
-        df = jvmVerificationResult.checkResultsAsDataFrame(
-            self._jsparkSession,
-            result,
-            getattr(jvmVerificationResult,
-                    "checkResultsAsDataFrame$default$3")()
-        )
-
-        return df
+        try: 
+            df = jvmVerificationResult.checkResultsAsDataFrame(
+                self._jsparkSession,
+                result,
+                getattr(jvmVerificationResult,
+                        "checkResultsAsDataFrame$default$3")()
+            )
+            return df
+        except Exception: 
+            self.spark.sparkContext._gateway.close()
+            self.spark.stop()
+            raise AttributeError
+        
 
 class VerificationSuite:
     """
@@ -93,7 +104,7 @@ class VerificationSuite:
         """
         return VerificationRunBuilder(self.spark, dataFrame)
 
-class AnalysisRunBuilder:
+class AnalysisRunBuilder(BaseBuilder):
     """
     A class to build an AnalysisRun using a fluent API.
     """
@@ -103,24 +114,11 @@ class AnalysisRunBuilder:
             SparkSession (pyspark.sql.SparkSession)
             dataFrame (pyspark.sql.dataframe.DataFrame)
         """
-        self.spark = SparkSession
-        self._dataFrame = dataFrame
+        super().__init__(SparkSession, dataFrame)
         run_builder = self._jvm.com.amazon.deequ.analyzers.runners.AnalysisRunBuilder
         self.jvmAnalysisRunBuilder = run_builder(
             self.dataFrame._jdf
         )
-
-    @property
-    def _jsparkSession(self):
-        return self.spark._jsparkSession
-
-    @property
-    def _jvm(self):
-        return self.spark.sparkContext._jvm
-
-    @property
-    def dataFrame(self):
-        return self._dataFrame
 
     def addAnalyzer(self, analyzer):
         """
@@ -140,14 +138,18 @@ class AnalysisRunBuilder:
 
         jvmAnalyzerContext = self._jvm.com.amazon.deequ \
             .analyzers.runners.AnalyzerContext
-        df = jvmAnalyzerContext.successMetricsAsDataFrame(
-            self._jsparkSession,
-            result,
-            getattr(jvmAnalyzerContext,
-                    "successMetricsAsDataFrame$default$3")()
-        )
-
-        return df
+        try: 
+            df = jvmAnalyzerContext.successMetricsAsDataFrame(
+                self._jsparkSession,
+                result,
+                getattr(jvmAnalyzerContext,
+                        "successMetricsAsDataFrame$default$3")()
+            )
+            return df
+        except Exception: 
+            self.spark.sparkContext._gateway.close()
+            self.spark.stop()
+            raise AttributeError
 
 class AnalysisRunner:
     """
@@ -169,3 +171,66 @@ class AnalysisRunner:
             spark dataFrame on which the checks will be verified.
         """
         return AnalysisRunBuilder(self.spark, dataFrame)
+
+
+class ConstraintSuggestionRunBuilder(BaseBuilder):
+    """
+    A class to build a ConstraintSuggestionRun using a fluent API.
+    """
+    def __init__(self, SparkSession, dataFrame):
+        """
+        Args:
+            SparkSession (pyspark.sql.SparkSession)
+            dataFrame (pyspark.sql.dataframe.DataFrame)
+        """
+        super().__init__(SparkSession, dataFrame)
+        run_builder = self._jvm.com.amazon.deequ.suggestions.ConstraintSuggestionRunBuilder
+        self.jvmConstraintSuggestionRunBuilder = run_builder(
+            self.dataFrame._jdf
+        )
+
+    def addConstraintRule(self, constraint):
+        """
+        Add a single rule for suggesting constraints based on ColumnProfiles to the run.
+        
+        Args:
+            constraintRule
+        """
+        jvmRule = constraint._jvmRule
+        self.jvmConstraintSuggestionRunBuilder.addConstraintRule(jvmRule())
+        return self
+
+    def run(self):
+        result = self.jvmConstraintSuggestionRunBuilder.run()
+
+        jvmSuggestionResult = self._jvm.com.amazon.deequ \
+            .suggestions.ConstraintSuggestionResult
+        try: 
+            df = jvmSuggestionResult.getConstraintSuggestionsAsJson(
+                result
+            )
+            return df
+        except: 
+            self.spark.sparkContext._gateway.close()
+            self.spark.stop()
+            raise AttributeError
+
+class ConstraintSuggestionRunner:
+    """
+    """
+    def __init__(self, SparkSession):
+        """
+        Args:
+            SparkSession ():
+        """
+        self.spark = SparkSession
+
+    def onData(self, dataFrame):
+        """
+        Starting point to construct a run on constraint suggestions.
+        
+        Args:
+            dataFrame (pyspark.sql.dataframe.DataFrame):
+            spark dataFrame on which the checks will be verified.
+        """
+        return ConstraintSuggestionRunBuilder(self.spark, dataFrame)
