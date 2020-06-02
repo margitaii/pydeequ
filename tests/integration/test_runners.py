@@ -2,9 +2,8 @@ import unittest
 
 from pyspark.sql import SparkSession
 
-from pydeequ.base import VerificationSuite, AnalysisRunner
+from pydeequ.base import VerificationSuite, AnalysisRunner, ConstraintSuggestionRunner
 from pydeequ.profiler import ColumnProfilerRunner
-from pydeequ.suggestions import ConstraintSuggestionRunner
 from pydeequ.examples import test_data
 
 class VerificationTest(unittest.TestCase):
