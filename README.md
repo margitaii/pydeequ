@@ -14,16 +14,16 @@ For further details on the Deequ API design and examples please refer to the fol
 
 # Requirements
 
-PyDeequ is tested on Spark 2.3.0 and Deequ 1.0.3-rc2. You need to initialize your pyspark session with the Deequ jar package. The .jar file is available via [maven central](http://mvnrepository.com/artifact/com.amazon.deequ/deequ), download it with
+PyDeequ is tested on Spark 2.3.3 and Deequ 1.0.5. You need to initialize your pyspark session with the Deequ jar package. The .jar file is available via [maven central](http://mvnrepository.com/artifact/com.amazon.deequ/deequ), download it with
 
 ```bash
-wget https://repo1.maven.org/maven2/com/amazon/deequ/deequ/1.0.3-rc2/deequ-1.0.3-rc2.jar
+wget https://repo1.maven.org/maven2/com/amazon/deequ/deequ/1.0.5/deequ-1.0.5.jar
 ```
 
 and start pyspark with
 
 ```bash
-pyspark --jars ./deequ-1.0.3-rc2.jar
+pyspark --jars ./deequ-1.0.5.jar
 ```
 
 # Basic usage
@@ -123,7 +123,7 @@ We can calculate some statistics on the dataset with the *AnalysisRunner* API. A
 ...     .addAnalyzer(analyzers.Compliance('top values', '_2 > 15'))
 ...     .addAnalyzer(analyzers.Correlation('_2', '_5'))) \
 ...     .run()
->>> out = DataFrame(r, spark)
+>>> out = r.successMetricsAsDataFrame()
 >>> out.show()
 +-----------+----------+-------------------+-------------------+
 |     entity|  instance|               name|              value|
@@ -214,6 +214,12 @@ It might be time consuming to define relevant data quality constraints during th
 >>> 
 ```
 The output is presented in JSON format. Constrain suggestions are based on constrain rules, the set of available rules can be found [here](src/pydeequ/suggestions.py).
+
+## Metrics repository
+
+See example of the usage of metrics repository [here](src/pydeequ/examples/metrics_repo.py)
+
+__NOTE:__ Currently the `.loadByKey` method of `FileSystemMetricsRepository` class is not implemented.
 
 # License
 

@@ -2,7 +2,6 @@ import py4j.java_gateway as jg
 
 from pydeequ.exceptions import JavaClassNotFoundException
 import pydeequ.jvm_conversions as jc
-import pdb
 
 class BaseAnalyzer(object):
     """

@@ -1,12 +1,13 @@
 import py4j.java_gateway as jg
 
+from pyspark.sql import DataFrame
+
 from pydeequ.exceptions import JavaClassNotFoundException
 import pydeequ.jvm_conversions as jc
 
-class BaseBuilder(object):
-    def __init__(self, SparkSession, dataFrame):
+class BaseWrapper(object):
+    def __init__(self, SparkSession):
         self.spark = SparkSession
-        self._dataFrame = dataFrame
 
     @property
     def _jsparkSession(self):
@@ -15,6 +16,15 @@ class BaseBuilder(object):
     @property
     def _jvm(self):
         return self.spark.sparkContext._jvm
+
+    @property
+    def _gateway(self):
+        return self.spark.sparkContext._gateway
+
+class BaseBuilder(BaseWrapper):
+    def __init__(self, SparkSession, dataFrame):
+        super().__init__(SparkSession)
+        self._dataFrame = dataFrame
 
     @property
     def dataFrame(self):
@@ -66,9 +76,22 @@ class VerificationRunBuilder(BaseBuilder):
             self.spark.sparkContext._gateway.close()
             self.spark.stop()
             raise AttributeError
-        
 
-class VerificationSuite:
+    def useRepository(self, metricsRepo):
+        self.jvmVerificationRunBuilder = self.jvmVerificationRunBuilder \
+            .useRepository(
+                metricsRepo.jvmMetricsRepo
+            )
+        return self
+
+    def saveOrAppendResult(self, resultKey):
+        self.jvmVerificationRunBuilder = self.jvmVerificationRunBuilder \
+            .saveOrAppendResult(
+                resultKey.jvmResultKey
+            )
+        return self
+
+class VerificationSuite(BaseWrapper):
     """
     Responsible for running checks and required analysis and return the
     results.
@@ -78,12 +101,8 @@ class VerificationSuite:
         Args:
             SparkSession ():
         """
-        self.spark = SparkSession
+        super().__init__(SparkSession)
         self._start_callback_server()
-
-    @property
-    def _gateway(self):
-        return self.spark.sparkContext._gateway
 
     def _start_callback_server(self):
         callback = self._gateway.get_callback_server()
@@ -102,6 +121,48 @@ class VerificationSuite:
             spark dataFrame on which the checks will be verified.
         """
         return VerificationRunBuilder(self.spark, dataFrame)
+
+class _AnalyzerContext(BaseWrapper):
+    """
+    """
+    def __init__(self, SparkSession, jvmAnalyzerContext):
+        """ Initializes the AnalyzerContext python object with a JVM object.
+
+        Args:
+            SparkSession ():
+            jvmAnalyzerContext (JavaObject):
+        """
+        super().__init__(SparkSession)
+        self.jvmAnalyzerContext = jvmAnalyzerContext
+
+    def successMetricsAsDataFrame(self):
+        try: 
+            df = self.jvmAnalyzerContext.successMetricsAsDataFrame(
+                self._jsparkSession,
+                self.jvmAnalyzerContext,
+                getattr(self.jvmAnalyzerContext,
+                        "successMetricsAsDataFrame$default$3")()
+            )
+            out = DataFrame(df, self.spark)
+            return out
+        except Exception: 
+            self.spark.sparkContext._gateway.close()
+            self.spark.stop()
+            raise AttributeError
+
+    def successMetricsAsJson(self):
+        try: 
+            jf = self.jvmAnalyzerContext.successMetricsAsJson(
+                self.jvmAnalyzerContext,
+                getattr(self.jvmAnalyzerContext,
+                        "successMetricsAsJson$default$2")()
+            )
+
+            return jf
+        except Exception: 
+            self.spark.sparkContext._gateway.close()
+            self.spark.stop()
+            raise AttributeError
 
 class AnalysisRunBuilder(BaseBuilder):
     """
@@ -133,34 +194,18 @@ class AnalysisRunBuilder(BaseBuilder):
         return self
 
     def run(self):
-        result = self.jvmAnalysisRunBuilder.run()
+        """ Returns an AnalyzerContext python object
+        """
+        jvmContext = self.jvmAnalysisRunBuilder.run()
+        return_context = _AnalyzerContext(
+            self.spark, 
+            jvmContext)
+        return return_context
 
-        jvmAnalyzerContext = self._jvm.com.amazon.deequ \
-            .analyzers.runners.AnalyzerContext
-        try: 
-            df = jvmAnalyzerContext.successMetricsAsDataFrame(
-                self._jsparkSession,
-                result,
-                getattr(jvmAnalyzerContext,
-                        "successMetricsAsDataFrame$default$3")()
-            )
-            return df
-        except Exception: 
-            self.spark.sparkContext._gateway.close()
-            self.spark.stop()
-            raise AttributeError
-
-class AnalysisRunner:
+class AnalysisRunner(BaseWrapper):
     """
     Responsible for running metrics calculations.
     """
-    def __init__(self, SparkSession):
-        """
-        Args:
-            SparkSession ():
-        """
-        self.spark = SparkSession
-
     def onData(self, dataFrame):
         """
         Starting point to construct an Analysisrun.
@@ -214,16 +259,9 @@ class ConstraintSuggestionRunBuilder(BaseBuilder):
             self.spark.stop()
             raise AttributeError
 
-class ConstraintSuggestionRunner:
+class ConstraintSuggestionRunner(BaseWrapper):
     """
     """
-    def __init__(self, SparkSession):
-        """
-        Args:
-            SparkSession ():
-        """
-        self.spark = SparkSession
-
     def onData(self, dataFrame):
         """
         Starting point to construct a run on constraint suggestions.

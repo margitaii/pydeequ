@@ -25,6 +25,11 @@ def option(jvm, java_obj):
 def scala_none(jvm):
     return getattr(getattr(jvm.scala, "None$"), "MODULE$")
 
+def dict_to_scala_map(jvm, keyvaluepairs):
+    return jvm.scala.collection.JavaConverters.\
+        mapAsScalaMapConverter(keyvaluepairs).\
+        asScala().toMap(jvm.scala.Predef.conforms())
+
 class scala_function1:
     def __init__(self, gateway, lambda_function):
         self.gateway = gateway

@@ -14,7 +14,7 @@ class ConstraintTest(unittest.TestCase):
                       .builder
                       .master('local[*]')
                       .config('spark.jars.packages',
-                              'com.amazon.deequ:deequ:1.0.3-rc2')
+                              'com.amazon.deequ:deequ:1.0.5')
                       .appName('pytest-pyspark-local-testing')
                       .getOrCreate())
         cls.df = cls.spark.createDataFrame(test_data)

@@ -12,7 +12,7 @@ def main():
               .builder
               .master('local[*]')
               .config('spark.jars.packages',
-                      'com.amazon.deequ:deequ:1.0.3-rc2')
+                      'com.amazon.deequ:deequ:1.0.5')
               .appName('constrain-example')
               .getOrCreate())
     df = spark.createDataFrame(test_data)
